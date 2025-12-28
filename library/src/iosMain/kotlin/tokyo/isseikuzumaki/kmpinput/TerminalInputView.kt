@@ -57,6 +57,11 @@ class TerminalInputView(frame: CValue<CGRect>) : UIView(frame), UITextInputProto
 
     override fun canBecomeFirstResponder(): Boolean = true
 
+    override fun touchesBegan(touches: Set<*>, withEvent: UIEvent?) {
+        becomeFirstResponder()
+        super.touchesBegan(touches, withEvent)
+    }
+
     override fun hasText(): Boolean = false
 
     override fun insertText(text: String) {

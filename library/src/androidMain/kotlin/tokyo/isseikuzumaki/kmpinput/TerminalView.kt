@@ -8,6 +8,11 @@ import android.view.View
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputConnection
 import android.view.inputmethod.InputMethodManager
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
 
 class TerminalView @JvmOverloads constructor(
     context: Context,
@@ -17,22 +22,44 @@ class TerminalView @JvmOverloads constructor(
 
     private val inputCore = TerminalInputCore()
     val handler: TerminalInputHandler get() = inputCore
+    private var scope: CoroutineScope? = null
 
     init {
         isFocusable = true
         isFocusableInTouchMode = true
     }
+    
+    override fun onAttachedToWindow() {
+        super.onAttachedToWindow()
+        scope = CoroutineScope(Dispatchers.Main + Job())
+        scope?.launch {
+            inputCore.uiState.collect { state ->
+                // When mode changes, we need to restart input to apply new EditorInfo
+                // We compare with the mode stored in EditorInfo? No, we can't easily check that.
+                // We just restart. Ideally we would check if it actually changed from last time.
+                val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+                imm.restartInput(this@TerminalView)
+            }
+        }
+    }
+
+    override fun onDetachedFromWindow() {
+        super.onDetachedFromWindow()
+        scope?.cancel()
+        scope = null
+    }
 
     fun setInputMode(mode: InputMode) {
         if (inputCore.uiState.value.inputMode != mode) {
             inputCore.setInputMode(mode)
-            val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
-            imm.restartInput(this)
+            // restartInput will be triggered by the flow collector
         }
     }
 
     override fun onCreateInputConnection(outAttrs: EditorInfo): InputConnection? {
         outAttrs.imeOptions = EditorInfo.IME_FLAG_NO_EXTRACT_UI
+
+        val isTextMode = inputCore.uiState.value.inputMode == InputMode.TEXT
 
         when (inputCore.uiState.value.inputMode) {
             InputMode.RAW -> {
@@ -43,11 +70,26 @@ class TerminalView @JvmOverloads constructor(
             InputMode.TEXT -> {
                 outAttrs.inputType = InputType.TYPE_CLASS_TEXT or
                         InputType.TYPE_TEXT_FLAG_CAP_SENTENCES or
-                        InputType.TYPE_TEXT_FLAG_AUTO_CORRECT
+                        InputType.TYPE_TEXT_FLAG_AUTO_CORRECT or
+                        InputType.TYPE_TEXT_FLAG_MULTI_LINE
             }
         }
 
-        return TerminalInputConnection(this, inputCore.dispatcher)
+        return TerminalInputConnection(this, inputCore.dispatcher, isTextMode)
+    }
+
+    override fun onTouchEvent(event: android.view.MotionEvent?): Boolean {
+        if (event?.action == android.view.MotionEvent.ACTION_UP) {
+            requestFocus()
+            val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+            imm.showSoftInput(this, InputMethodManager.SHOW_IMPLICIT)
+            performClick()
+        }
+        return true
+    }
+
+    override fun performClick(): Boolean {
+        return super.performClick()
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
@@ -73,11 +115,7 @@ class TerminalView @JvmOverloads constructor(
         }
 
         // Handle regular character input via onKeyDown if not handled by IME
-        val unicodeChar = event.unicodeChar
-        if (unicodeChar != 0) {
-            inputCore.dispatcher.commitText(unicodeChar.toChar().toString())
-            return true
-        }
+        // The block that directly committed unicodeChar is removed to allow IME processing.
 
         return super.onKeyDown(keyCode, event)
     }

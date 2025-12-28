@@ -44,6 +44,10 @@ kotlin {
         commonTest.dependencies {
             implementation(libs.kotlin.test)
         }
+
+        androidMain.dependencies {
+            implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.1")
+        }
     }
 }
 
