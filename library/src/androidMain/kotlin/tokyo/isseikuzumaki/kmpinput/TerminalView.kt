@@ -12,6 +12,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
 class TerminalView @JvmOverloads constructor(
@@ -33,13 +35,13 @@ class TerminalView @JvmOverloads constructor(
         super.onAttachedToWindow()
         scope = CoroutineScope(Dispatchers.Main + Job())
         scope?.launch {
-            inputCore.uiState.collect { state ->
-                // When mode changes, we need to restart input to apply new EditorInfo
-                // We compare with the mode stored in EditorInfo? No, we can't easily check that.
-                // We just restart. Ideally we would check if it actually changed from last time.
-                val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
-                imm.restartInput(this@TerminalView)
-            }
+            inputCore.uiState
+                .map { it.inputMode }
+                .distinctUntilChanged()
+                .collect { _ ->
+                    val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+                    imm.restartInput(this@TerminalView)
+                }
         }
     }
 
