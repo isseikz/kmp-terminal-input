@@ -21,13 +21,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import tokyo.isseikuzumaki.kmpinput.InputMode
 import tokyo.isseikuzumaki.kmpinput.TerminalInputContainer
-import tokyo.isseikuzumaki.kmpinput.TerminalInputHandler
+import tokyo.isseikuzumaki.kmpinput.rememberTerminalInputContainerState
 
 expect fun logD(tag: String, message: String): Unit
 
@@ -39,12 +38,13 @@ fun App() {
     val logs = remember { mutableStateListOf<String>() }
     val listState = rememberLazyListState()
 
-    // Point 1/2 Key input can be obtained via TerminalInputHandler
-    var inputHandler by remember { mutableStateOf<TerminalInputHandler?>(null) }
-    val inputState by inputHandler?.uiState?.collectAsState() ?: remember { mutableStateOf(null) }
+    // Create terminal state - similar to rememberLazyListState()
+    val terminalState = rememberTerminalInputContainerState()
+    val inputState by terminalState.uiState?.collectAsState() ?: remember { mutableStateOf(null) }
 
-    LaunchedEffect(inputHandler) {
-        inputHandler?.ptyInputStream?.collect { bytes ->
+    // Collect keyboard input
+    LaunchedEffect(terminalState.isReady) {
+        terminalState.ptyInputStream.collect { bytes ->
             val hex = bytes.joinToString(" ") {
                 it.toInt().and(0xFF).toString(16)
                     .padStart(2, '0')
@@ -64,21 +64,12 @@ fun App() {
             Text("KMP Terminal Input Demo", style = MaterialTheme.typography.h5)
             Spacer(modifier = Modifier.height(8.dp))
 
-            Text("Tap log area to show keyboard", style = MaterialTheme.typography.caption)
-            Spacer(modifier = Modifier.height(8.dp))
-
             Row {
-                Button(
-                    enabled = inputHandler != null,
-                    onClick = { inputHandler?.setInputMode(InputMode.RAW) }
-                ) {
+                Button(onClick = { terminalState.setInputMode(InputMode.RAW) }) {
                     Text("RAW Mode")
                 }
                 Spacer(modifier = Modifier.padding(8.dp))
-                Button(
-                    enabled = inputHandler != null,
-                    onClick = { inputHandler?.setInputMode(InputMode.TEXT) }
-                ) {
+                Button(onClick = { terminalState.setInputMode(InputMode.TEXT) }) {
                     Text("TEXT Mode")
                 }
             }
@@ -90,12 +81,12 @@ fun App() {
             Spacer(modifier = Modifier.height(16.dp))
 
             Text("Output Log:")
+            Text("Tap log area to show keyboard", style = MaterialTheme.typography.caption)
+            Spacer(modifier = Modifier.height(8.dp))
 
-            // Point 2/2 Keyboard input area is wrapped in TerminalInputContainer
+            // Keyboard input area wrapped in TerminalInputContainer
             TerminalInputContainer(
-                onInputHandlerReady = { handler ->
-                    inputHandler = handler
-                },
+                state = terminalState,
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth()
