@@ -4,10 +4,11 @@ import android.content.Context
 import android.text.InputType
 import android.util.AttributeSet
 import android.view.KeyEvent
-import android.view.View
+import android.view.MotionEvent
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputConnection
 import android.view.inputmethod.InputMethodManager
+import android.widget.FrameLayout
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -16,11 +17,32 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
+/**
+ * A container view that handles terminal keyboard input.
+ *
+ * TerminalView wraps child views and handles keyboard input when tapped.
+ * It has no intrinsic size - its size is determined by its children or layout params.
+ *
+ * Usage:
+ * ```xml
+ * <TerminalView
+ *     android:layout_width="match_parent"
+ *     android:layout_height="match_parent">
+ *
+ *     <!-- Your terminal display view here -->
+ *     <TextView android:id="@+id/terminal_output" ... />
+ *
+ * </TerminalView>
+ * ```
+ *
+ * When tapped anywhere within its bounds (including over child views),
+ * the software keyboard will appear and input will be sent to the handler.
+ */
 class TerminalView @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
-    defStyleAttr: Int = 0
-) : View(context, attrs, defStyleAttr) {
+    defStyleAttr: Int = 0,
+) : FrameLayout(context, attrs, defStyleAttr) {
 
     private val inputCore = TerminalInputCore()
     val handler: TerminalInputHandler get() = inputCore
@@ -30,7 +52,7 @@ class TerminalView @JvmOverloads constructor(
         isFocusable = true
         isFocusableInTouchMode = true
     }
-    
+
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
         scope = CoroutineScope(Dispatchers.Main + Job())
@@ -54,7 +76,6 @@ class TerminalView @JvmOverloads constructor(
     fun setInputMode(mode: InputMode) {
         if (inputCore.uiState.value.inputMode != mode) {
             inputCore.setInputMode(mode)
-            // restartInput will be triggered by the flow collector
         }
     }
 
@@ -80,8 +101,13 @@ class TerminalView @JvmOverloads constructor(
         return TerminalInputConnection(this, inputCore.dispatcher, isTextMode)
     }
 
-    override fun onTouchEvent(event: android.view.MotionEvent?): Boolean {
-        if (event?.action == android.view.MotionEvent.ACTION_UP) {
+    override fun onInterceptTouchEvent(ev: MotionEvent?): Boolean {
+        // Intercept touch events to handle focus and keyboard
+        return true
+    }
+
+    override fun onTouchEvent(event: MotionEvent?): Boolean {
+        if (event?.action == MotionEvent.ACTION_UP) {
             requestFocus()
             val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
             imm.showSoftInput(this, InputMethodManager.SHOW_IMPLICIT)
@@ -92,6 +118,23 @@ class TerminalView @JvmOverloads constructor(
 
     override fun performClick(): Boolean {
         return super.performClick()
+    }
+
+    /**
+     * Programmatically show the software keyboard.
+     */
+    fun showKeyboard() {
+        requestFocus()
+        val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+        imm.showSoftInput(this, InputMethodManager.SHOW_IMPLICIT)
+    }
+
+    /**
+     * Programmatically hide the software keyboard.
+     */
+    fun hideKeyboard() {
+        val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+        imm.hideSoftInputFromWindow(windowToken, 0)
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
@@ -117,7 +160,6 @@ class TerminalView @JvmOverloads constructor(
         }
 
         // Handle regular character input via onKeyDown if not handled by IME
-        // The block that directly committed unicodeChar is removed to allow IME processing.
 
         return super.onKeyDown(keyCode, event)
     }

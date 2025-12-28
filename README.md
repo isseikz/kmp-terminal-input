@@ -1,24 +1,22 @@
 # KMP Terminal Input
 
-**KMP Terminal Input** is a Kotlin Multiplatform library that provides a robust, cross-platform abstraction for terminal input on mobile devices. It bridges native input systems (Android IME, iOS UITextInput) to a standard, xterm-compliant byte stream (`Flow<ByteArray>`).
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](http://www.apache.org/licenses/LICENSE-2.0)
+[![Maven Central](https://img.shields.io/maven-central/v/tokyo.isseikuzumaki/kmp-terminal-input.svg)](https://central.sonatype.com/artifact/tokyo.isseikuzumaki/kmp-terminal-input)
+[![Platform](https://img.shields.io/badge/platform-Android%20|%20iOS-lightgrey.svg)](https://kotlinlang.org/docs/multiplatform.html)
 
-This library is designed for modern terminal applications that need to switch between:
-*   **Raw Mode**: For traditional shell tasks (SSH, Vim) where precise key control is needed and predictive text gets in the way.
-*   **Text Mode**: For AI chat interfaces (e.g., interacting with LLMs via CLI) where users want full IME support, predictive text, voice input, and native editing capabilities.
+**KMP Terminal Input** is a Kotlin Multiplatform library that simplifies terminal input handling on mobile devices. It provides a unified API to consume character streams and control input modes, bridging the gap between native mobile keyboards (IMEs) and terminal emulators.
 
-## Features
-
-*   **Multiplatform Support**:
-    *   🤖 **Android**: `TerminalView` (extends `View`, manages `InputConnection`).
-    *   🍎 **iOS**: `TerminalInputView` (extends `UIView`, implements `UITextInput`).
+Key features:
+*   **Unified Byte Stream**: Receives input as a standard `Flow<ByteArray>`, ready to be piped into a PTY or SSH session.
 *   **Dual Input Modes**:
-    *   **`InputMode.RAW`**: Disables auto-correct, suggestions, and auto-capitalization. Ideal for password entry, coding (Vim/Nano), and shell commands.
-    *   **`InputMode.TEXT`**: Enables full system IME (Gboard, iOS Keyboard) with predictive text, flick input, and voice dictation.
-*   **Standard Output**: Emits ANSI-encoded byte sequences (UTF-8 text + Escape sequences for special keys) via a Kotlin Coroutines `Flow`.
-*   **Virtual Key Support**: Handles special keys like Arrows, Home/End, PageUp/Down, F1-F12, and modifier keys (Ctrl+Key).
-*   **Bracketed Paste**: Support for safe pasting of text (optional).
+    *   **RAW Mode**: Direct key events, no predictive text. Ideal for Shell/Vim/SSH.
+    *   **TEXT Mode**: Full IME support with predictive text, glide typing, and voice input. Ideal for AI chats or natural language prompts.
+*   **Virtual Keys**: Handles Arrows, Ctrl+Key, Home/End, etc., mapping them to ANSI escape sequences.
+*   **Native UI Components**: Provides `TerminalView` (Android) and `TerminalInputView` (iOS) that handle focus and keyboard interactions correctly.
 
-## Installation
+---
+
+## 📦 Installation
 
 Add the dependency to your `commonMain` source set in `build.gradle.kts`:
 
@@ -26,86 +24,132 @@ Add the dependency to your `commonMain` source set in `build.gradle.kts`:
 kotlin {
     sourceSets {
         commonMain.dependencies {
-            implementation("tokyo.isseikuzumaki:kmp-terminal-input:1.0.0") 
+            implementation("tokyo.isseikuzumaki:kmp-terminal-input:1.0.0")
         }
     }
 }
 ```
 
-## Usage
+Ensure `mavenCentral()` is in your repositories configuration:
 
-### Common Code (Shared Logic)
+```kotlin
+repositories {
+    mavenCentral()
+}
+```
 
-The core interface is `TerminalInputHandler`. You typically interact with this through the platform-specific views.
+---
+
+## 🚀 Usage
+
+### 1. Shared Logic (Common Code)
+
+The core interface is `TerminalInputHandler`. You typically access this from the platform-specific views.
 
 ```kotlin
 import tokyo.isseikuzumaki.kmpinput.*
 
-// Accessing the handler from your view (see platform sections below)
-val inputHandler: TerminalInputHandler = terminalView.handler
+// Accessing the handler (passed from platform code)
+fun bindInput(handler: TerminalInputHandler, scope: CoroutineScope) {
+    
+    // Switch Input Mode
+    handler.setInputMode(InputMode.TEXT) // Enable Auto-correct/Prediction
+    // handler.setInputMode(InputMode.RAW) // Disable Prediction (Shell mode)
 
-// observing the output stream (connect this to your PTY/SSH session)
-scope.launch {
-    inputHandler.ptyInputStream.collect { bytes ->
-        // bytes contains UTF-8 characters or ANSI escape sequences
-        // e.g., sendToPty(bytes)
+    // Observe Output
+    scope.launch {
+        handler.ptyInputStream.collect { bytes ->
+            val text = bytes.decodeToString()
+            // Send 'bytes' to your PTY, SSH, or process
+            println("Received: $text") 
+        }
     }
 }
+```
 
-// Switching modes dynamically
-fun toggleInputMode() {
-    val newMode = if (currentMode == InputMode.RAW) InputMode.TEXT else InputMode.RAW
-    inputHandler.setInputMode(newMode)
+### 2. Android Integration
+
+Use `TerminalView` in your Activity, Fragment, or Composable (via `AndroidView`).
+
+**XML Layout:**
+```xml
+<tokyo.isseikuzumaki.kmpinput.TerminalView
+    android:id="@+id/terminalView"
+    android:layout_width="match_parent"
+    android:layout_height="0dp"
+    android:layout_weight="1"
+    android:background="#EEE" />
+```
+
+**Kotlin Code:**
+```kotlin
+val terminalView = findViewById<TerminalView>(R.id.terminalView)
+val handler = terminalView.handler
+
+// Initialize
+handler.attach(lifecycleScope)
+
+// Show Keyboard on tap
+terminalView.setOnClickListener {
+    terminalView.requestFocus()
+    val imm = getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
+    imm.showSoftInput(terminalView, InputMethodManager.SHOW_IMPLICIT)
 }
 ```
 
-### Android
+### 3. iOS Integration
 
-Add `TerminalView` to your layout (XML or programmatically).
+Use `TerminalInputView` (a `UIView` subclass) in your layout.
 
-```kotlin
-// In your Activity or Fragment
-val terminalView = TerminalView(context)
-layout.addView(terminalView)
-
-// Important: Ensure the view creates the InputConnection
-terminalView.requestFocus()
-
-// Switch modes
-terminalView.setInputMode(InputMode.TEXT) // Enable predictive text
-terminalView.setInputMode(InputMode.RAW)  // Disable predictive text (Shell-like)
-```
-
-### iOS
-
-Use `TerminalInputView` within your UIKit hierarchy or wrap it for SwiftUI.
-
+**Swift / UIKit:**
 ```swift
-import UIKit
 import Shared
+import UIKit
 
-// In your ViewController
-let terminalInputView = TerminalInputView(frame: .zero)
-view.addSubview(terminalInputView)
+class ViewController: UIViewController {
+    override func viewDidLoad() {
+        super.viewDidLoad()
 
-// Become first responder to show keyboard
-terminalInputView.becomeFirstResponder()
-
-// Switch modes
-terminalInputView.setInputMode(mode: .text) // Enable autocorrect/suggestions
-terminalInputView.setInputMode(mode: .raw)  // Disable autocorrect
+        let terminalInputView = TerminalInputView(frame: self.view.bounds)
+        self.view.addSubview(terminalInputView)
+        
+        let handler = terminalInputView.handler
+        // Bind handler to your shared logic...
+    }
+    
+    // Show keyboard
+    func showKeyboard() {
+        terminalInputView.becomeFirstResponder()
+    }
+}
 ```
 
-## Architecture
+**Compose Multiplatform (iOS):**
+```kotlin
+// In your iOS MainViewController.kt
+fun MainViewController() = ComposeUIViewController {
+    val terminalView = remember { TerminalInputView(CGRectZero.readValue()) }
+    
+    UIKitView(
+        factory = { terminalView },
+        modifier = Modifier.fillMaxWidth().height(100.dp)
+    )
+}
+```
 
-The library uses an Adapter pattern to normalize platform-specific input events into a common stream.
+---
 
-1.  **Platform Layer**:
-    *   **Android**: `TerminalView` uses a custom `InputConnection` to intercept IME events. It manipulates `EditorInfo` flags to control the keyboard type (Text vs. Visible Password/No Suggestions).
-    *   **iOS**: `TerminalInputView` implements `UITextInput` protocol. It toggles `autocorrectionType` and `spellCheckingType` based on the selected mode.
-2.  **Core Layer**: `TerminalInputCore` receives abstract events (`commitText`, `sendSpecialKey`) and encodes them into ANSI byte sequences (e.g., `Up Arrow` -> `\u001b[A`).
-3.  **Output**: A `SharedFlow<ByteArray>` exposes the resulting stream to the consumer.
+## 🛠️ Architecture
+
+*   **Platform Layer**:
+    *   **Android**: `TerminalView` extends `View` and uses a custom `InputConnection`. It handles the complexity of "Dummy" input connections vs "Full Editor" connections to support both Raw keys and IME features like Japanese predictive input.
+    *   **iOS**: `TerminalInputView` implements `UITextInput` protocol to interface with the system keyboard, handling autocorrect flags and text insertion.
+*   **Core Layer**: `TerminalInputCore` normalizes events into ANSI sequences (e.g., `Up Arrow` -> `\u001b[A`, `Ctrl+C` -> `\u0003`).
+
+## 📱 Demo App
+
+Check the `composeApp` module in this repository for a complete working example using Compose Multiplatform.
 
 ## License
 
-[License Name] - See LICENSE file.
+Apache License 2.0

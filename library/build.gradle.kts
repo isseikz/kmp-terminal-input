@@ -4,20 +4,20 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.android.kotlin.multiplatform.library)
+    alias(libs.plugins.jetbrainsCompose)
+    alias(libs.plugins.compose.compiler)
     alias(libs.plugins.vanniktech.mavenPublish)
 }
 
-group = "io.github.kotlin"
+group = "tokyo.isseikuzumaki"
 version = "1.0.0"
 
 kotlin {
-    jvm()
     androidLibrary {
-        namespace = "org.jetbrains.kotlinx.multiplatform.library.template"
+        namespace = "tokyo.isseikuzumaki.kmpinput"
         compileSdk = libs.versions.android.compileSdk.get().toInt()
         minSdk = libs.versions.android.minSdk.get().toInt()
 
-        withJava() // enable java compilation support
         withHostTestBuilder {}.configure {}
         withDeviceTestBuilder {
             sourceSetTreeName = "test"
@@ -34,11 +34,13 @@ kotlin {
     iosX64()
     iosArm64()
     iosSimulatorArm64()
-    linuxX64()
 
     sourceSets {
         commonMain.dependencies {
-            implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.1")
+            implementation(libs.kotlinx.coroutines.core)
+            implementation(compose.runtime)
+            implementation(compose.foundation)
+            implementation(compose.ui)
         }
 
         commonTest.dependencies {
@@ -46,7 +48,8 @@ kotlin {
         }
 
         androidMain.dependencies {
-            implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.1")
+            implementation(libs.kotlinx.coroutines.android)
+            implementation(libs.androidx.runtime)
         }
     }
 }
@@ -56,31 +59,31 @@ mavenPublishing {
 
     signAllPublications()
 
-    coordinates(group.toString(), "library", version.toString())
+    coordinates(group.toString(), "kmp-terminal-input", version.toString())
 
     pom {
-        name = "My library"
-        description = "A library."
-        inceptionYear = "2024"
-        url = "https://github.com/kotlin/multiplatform-library-template/"
+        name = "KMP Terminal Input"
+        description = "A Kotlin Multiplatform library for abstracting terminal input on Android and iOS."
+        inceptionYear = "2025"
+        url = "https://github.com/isseikz/kmp-terminal-input"
         licenses {
             license {
-                name = "XXX"
-                url = "YYY"
-                distribution = "ZZZ"
+                name = "The Apache License, Version 2.0"
+                url = "http://www.apache.org/licenses/LICENSE-2.0.txt"
+                distribution = "http://www.apache.org/licenses/LICENSE-2.0.txt"
             }
         }
         developers {
             developer {
-                id = "XXX"
-                name = "YYY"
-                url = "ZZZ"
+                id = "isseikz"
+                name = "Issei Kuzumaki"
+                url = "https://github.com/isseikz"
             }
         }
         scm {
-            url = "XXX"
-            connection = "YYY"
-            developerConnection = "ZZZ"
+            url = "https://github.com/isseikz/kmp-terminal-input"
+            connection = "scm:git:git://github.com/isseikz/kmp-terminal-input.git"
+            developerConnection = "scm:git:ssh://git@github.com/isseikz/kmp-terminal-input.git"
         }
     }
 }
