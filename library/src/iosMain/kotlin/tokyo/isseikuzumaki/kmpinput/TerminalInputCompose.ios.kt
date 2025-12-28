@@ -3,13 +3,14 @@ package tokyo.isseikuzumaki.kmpinput
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier as ComposeModifier
 import androidx.compose.ui.interop.UIKitView
+import androidx.compose.ui.unit.dp
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.readValue
 import platform.CoreGraphics.CGRectZero
@@ -44,10 +45,10 @@ actual fun TerminalInputContainer(
         }
     ) {
         content()
-        // Hidden UIKitView to handle keyboard input
+        // Hidden UIKitView (zero size) to handle keyboard input
         UIKitView(
             factory = { terminalView },
-            modifier = ComposeModifier.fillMaxSize()
+            modifier = ComposeModifier.size(0.dp)
         )
     }
 }

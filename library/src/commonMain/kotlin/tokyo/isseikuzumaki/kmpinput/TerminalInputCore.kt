@@ -11,7 +11,10 @@ import kotlinx.coroutines.launch
 
 class TerminalInputCore : TerminalInputHandler {
     private var scope: CoroutineScope? = null
-    private val _ptyInputStream = MutableSharedFlow<ByteArray>()
+    private val _ptyInputStream = MutableSharedFlow<ByteArray>(
+        replay = 0,
+        extraBufferCapacity = 64
+    )
     override val ptyInputStream: SharedFlow<ByteArray> = _ptyInputStream.asSharedFlow()
 
     private val _uiState = MutableStateFlow(InputUiState())
