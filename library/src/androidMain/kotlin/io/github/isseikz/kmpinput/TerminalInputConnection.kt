@@ -1,4 +1,4 @@
-package tokyo.isseikuzumaki.kmpinput
+package io.github.isseikz.kmpinput
 
 import android.view.View
 import android.view.inputmethod.BaseInputConnection

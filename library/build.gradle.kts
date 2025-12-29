@@ -9,12 +9,12 @@ plugins {
     alias(libs.plugins.vanniktech.mavenPublish)
 }
 
-group = "tokyo.isseikuzumaki"
+group = "io.github.isseikz"
 version = "1.0.0"
 
 kotlin {
     androidLibrary {
-        namespace = "tokyo.isseikuzumaki.kmpinput"
+        namespace = "io.github.isseikz.kmpinput"
         compileSdk = libs.versions.android.compileSdk.get().toInt()
         minSdk = libs.versions.android.minSdk.get().toInt()
 

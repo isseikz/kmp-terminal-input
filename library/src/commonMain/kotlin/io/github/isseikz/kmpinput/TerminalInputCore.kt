@@ -1,4 +1,4 @@
-package tokyo.isseikuzumaki.kmpinput
+package io.github.isseikz.kmpinput
 
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableSharedFlow

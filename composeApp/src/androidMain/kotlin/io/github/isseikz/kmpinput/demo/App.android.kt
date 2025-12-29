@@ -1,4 +1,4 @@
-package tokyo.isseikuzumaki.kmpinput.demo
+package io.github.isseikz.kmpinput.demo
 
 import android.util.Log
 

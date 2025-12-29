@@ -1,4 +1,4 @@
-package tokyo.isseikuzumaki.kmpinput
+package io.github.isseikz.kmpinput
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource

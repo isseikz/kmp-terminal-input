@@ -1,7 +1,7 @@
 # KMP Terminal Input
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](http://www.apache.org/licenses/LICENSE-2.0)
-[![Maven Central](https://img.shields.io/maven-central/v/tokyo.isseikuzumaki/kmp-terminal-input.svg)](https://central.sonatype.com/artifact/tokyo.isseikuzumaki/kmp-terminal-input)
+[![Maven Central](https://img.shields.io/maven-central/v/io.github.isseikz/kmp-terminal-input.svg)](https://central.sonatype.com/artifact/io.github.isseikz/kmp-terminal-input)
 [![Platform](https://img.shields.io/badge/platform-Android%20|%20iOS-lightgrey.svg)](https://kotlinlang.org/docs/multiplatform.html)
 
 [日本語版 README はこちら](README.ja.md)
@@ -27,7 +27,7 @@ Add the dependency to your `commonMain` source set in `build.gradle.kts`:
 kotlin {
     sourceSets {
         commonMain.dependencies {
-            implementation("tokyo.isseikuzumaki:kmp-terminal-input:1.0.0")
+            implementation("io.github.isseikz:kmp-terminal-input:1.0.0")
         }
     }
 }
@@ -50,7 +50,7 @@ repositories {
 The simplest way to use this library is with `TerminalInputContainer` and `rememberTerminalInputContainerState()`:
 
 ```kotlin
-import tokyo.isseikuzumaki.kmpinput.*
+import io.github.isseikz.kmpinput.*
 
 @Composable
 fun TerminalScreen() {
@@ -111,7 +111,7 @@ Use `TerminalView` directly in your Activity or Fragment:
 
 **XML Layout:**
 ```xml
-<tokyo.isseikuzumaki.kmpinput.TerminalView
+<io.github.isseikz.kmpinput.TerminalView
     android:id="@+id/terminalView"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
@@ -122,7 +122,7 @@ Use `TerminalView` directly in your Activity or Fragment:
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
-</tokyo.isseikuzumaki.kmpinput.TerminalView>
+</io.github.isseikz.kmpinput.TerminalView>
 ```
 
 **Kotlin Code:**

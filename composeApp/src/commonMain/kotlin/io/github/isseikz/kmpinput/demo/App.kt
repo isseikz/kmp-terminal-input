@@ -1,4 +1,4 @@
-package tokyo.isseikuzumaki.kmpinput.demo
+package io.github.isseikz.kmpinput.demo
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -24,9 +24,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import tokyo.isseikuzumaki.kmpinput.InputMode
-import tokyo.isseikuzumaki.kmpinput.TerminalInputContainer
-import tokyo.isseikuzumaki.kmpinput.rememberTerminalInputContainerState
+import io.github.isseikz.kmpinput.InputMode
+import io.github.isseikz.kmpinput.TerminalInputContainer
+import io.github.isseikz.kmpinput.rememberTerminalInputContainerState
 
 expect fun logD(tag: String, message: String): Unit
 

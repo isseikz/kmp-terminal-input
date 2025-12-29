@@ -1,4 +1,4 @@
-package tokyo.isseikuzumaki.kmpinput
+package io.github.isseikz.kmpinput
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable

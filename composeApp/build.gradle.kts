@@ -48,11 +48,11 @@ kotlin {
 }
 
 android {
-    namespace = "tokyo.isseikuzumaki.kmpinput.demo"
+    namespace = "io.github.isseikz.kmpinput.demo"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
 
     defaultConfig {
-        applicationId = "tokyo.isseikuzumaki.kmpinput.demo"
+        applicationId = "io.github.isseikz.kmpinput.demo"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.compileSdk.get().toInt()
         versionCode = 1
