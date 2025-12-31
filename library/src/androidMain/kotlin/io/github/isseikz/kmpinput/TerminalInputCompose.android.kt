@@ -28,9 +28,15 @@ actual fun TerminalInputContainer(
 ) {
     val scope = rememberCoroutineScope()
 
+    // Track the handler created by THIS instance to avoid detaching wrong handler
+    var localHandler: TerminalInputHandler? = null
+
     DisposableEffect(Unit) {
         onDispose {
-            state.detach()
+            // Only detach if our handler is still the current one
+            if (localHandler != null && state.handler === localHandler) {
+                state.detach()
+            }
         }
     }
 
@@ -40,6 +46,7 @@ actual fun TerminalInputContainer(
             TerminalView(ctx).apply {
                 setInputMode(inputMode)
                 handler.attach(scope)
+                localHandler = handler
                 state.handler = handler
 
                 // Add a ComposeView as child to host the content

@@ -2,10 +2,9 @@ package io.github.isseikz.kmpinput
 
 import android.view.View
 import android.view.inputmethod.BaseInputConnection
-import android.view.inputmethod.EditorInfo
 
 class TerminalInputConnection(
-    targetView: View,
+    private val targetView: View,
     private val dispatcher: TerminalInputDispatcher,
     fullEditor: Boolean
 ) : BaseInputConnection(targetView, fullEditor) {
@@ -29,7 +28,7 @@ class TerminalInputConnection(
         }
         return result
     }
-    
+
     override fun finishComposingText(): Boolean {
         isComposing = false
         return super.finishComposingText()
@@ -47,7 +46,6 @@ class TerminalInputConnection(
     }
 
     override fun sendKeyEvent(event: android.view.KeyEvent?): Boolean {
-        // Basic implementation for hardware keys if they are passed through here
         return super.sendKeyEvent(event)
     }
 }
