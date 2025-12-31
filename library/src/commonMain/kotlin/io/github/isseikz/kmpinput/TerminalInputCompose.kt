@@ -22,10 +22,21 @@ import kotlinx.coroutines.flow.emptyFlow
  */
 @Stable
 class TerminalInputContainerState {
-    internal var handler: TerminalInputHandler? by mutableStateOf(null)
+    private var _handler: TerminalInputHandler? by mutableStateOf(null)
+
+    /** Version counter that increments when handler changes. Use this in LaunchedEffect keys. */
+    private var _handlerVersion by mutableStateOf(0)
+    val handlerVersion: Int get() = _handlerVersion
+
+    internal var handler: TerminalInputHandler?
+        get() = _handler
+        set(value) {
+            _handler = value
+            _handlerVersion++
+        }
 
     /** Whether the handler is ready and attached. */
-    val isReady: Boolean get() = handler != null
+    val isReady: Boolean get() = _handler != null
 
     /** Current UI state (input mode, composing state). Returns null if not ready. */
     val uiState: StateFlow<InputUiState>? get() = handler?.uiState
