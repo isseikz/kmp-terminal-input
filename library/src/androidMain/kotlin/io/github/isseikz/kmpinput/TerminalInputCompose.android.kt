@@ -17,6 +17,7 @@ import androidx.compose.ui.Modifier as ComposeModifier
  * @param state State holder for the terminal input
  * @param modifier Modifier for the composable
  * @param inputMode Initial input mode (RAW or TEXT)
+ * @param onLongPress Callback for long press events. Return true if handled, false to pass to children.
  * @param content The composable content to wrap
  */
 @Composable
@@ -24,6 +25,7 @@ actual fun TerminalInputContainer(
     state: TerminalInputContainerState,
     modifier: ComposeModifier,
     inputMode: InputMode,
+    onLongPress: OnLongPress?,
     content: @Composable () -> Unit
 ) {
     val scope = rememberCoroutineScope()
@@ -49,6 +51,16 @@ actual fun TerminalInputContainer(
                 localHandler = handler
                 state.handler = handler
 
+                // Set keyboard show callback
+                state.showKeyboardCallback = { showKeyboard() }
+
+                // Set long press listener if provided
+                if (onLongPress != null) {
+                    onLongPressListener = OnLongPressListener { x, y ->
+                        onLongPress(x, y)
+                    }
+                }
+
                 // Add a ComposeView as child to host the content
                 val composeView = ComposeView(ctx).apply {
                     layoutParams = FrameLayout.LayoutParams(
@@ -62,6 +74,12 @@ actual fun TerminalInputContainer(
         },
         update = { view ->
             view.setInputMode(inputMode)
+            // Update long press listener
+            view.onLongPressListener = if (onLongPress != null) {
+                OnLongPressListener { x, y -> onLongPress(x, y) }
+            } else {
+                null
+            }
         }
     )
 }

@@ -21,8 +21,10 @@ actual fun TerminalInputContainer(
     state: TerminalInputContainerState,
     modifier: ComposeModifier,
     inputMode: InputMode,
+    onLongPress: OnLongPress?,
     content: @Composable () -> Unit,
 ) {
+    // TODO: Implement long press for iOS
     val scope = rememberCoroutineScope()
     val terminalView = remember { TerminalInputView(CGRectZero.readValue()) }
     val interactionSource = remember { MutableInteractionSource() }
@@ -31,7 +33,9 @@ actual fun TerminalInputContainer(
         terminalView.setInputMode(inputMode)
         terminalView.handler.attach(scope)
         state.handler = terminalView.handler
+        state.showKeyboardCallback = { terminalView.becomeFirstResponder() }
         onDispose {
+            state.showKeyboardCallback = null
             state.detach()
         }
     }

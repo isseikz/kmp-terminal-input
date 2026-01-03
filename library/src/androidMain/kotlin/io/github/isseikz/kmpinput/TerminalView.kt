@@ -22,6 +22,20 @@ import kotlinx.coroutines.launch
 import kotlin.math.abs
 
 /**
+ * Listener for long press events on TerminalView.
+ */
+fun interface OnLongPressListener {
+    /**
+     * Called when a long press is detected.
+     *
+     * @param x The x coordinate of the long press relative to the view
+     * @param y The y coordinate of the long press relative to the view
+     * @return true if the event was handled, false to pass to child views
+     */
+    fun onLongPress(x: Float, y: Float): Boolean
+}
+
+/**
  * A container view that handles terminal keyboard input.
  *
  * TerminalView wraps child views and handles keyboard input when tapped.
@@ -41,6 +55,10 @@ import kotlin.math.abs
  *
  * When tapped anywhere within its bounds (including over child views),
  * the software keyboard will appear and input will be sent to the handler.
+ *
+ * Long press behavior:
+ * - If an [OnLongPressListener] is set and returns true, it handles the event
+ * - Otherwise, the long press is passed to child views (e.g., for text selection)
  */
 class TerminalView @JvmOverloads constructor(
     context: Context,
@@ -58,8 +76,51 @@ class TerminalView @JvmOverloads constructor(
     private var touchDownX = 0f
     private var touchDownY = 0f
     private val touchSlop = ViewConfiguration.get(context).scaledTouchSlop
+
+    /**
+     * Listener for long press events. If set and returns true, the event is consumed.
+     * Otherwise, the event is passed to child views.
+     */
+    var onLongPressListener: OnLongPressListener? = null
+
     private val longPressRunnable = Runnable {
         longPressDetected = true
+        handleLongPress(touchDownX, touchDownY)
+    }
+
+    private fun handleLongPress(x: Float, y: Float) {
+        // First, try the custom listener
+        val handled = onLongPressListener?.onLongPress(x, y) ?: false
+
+        // If not handled, pass to child views
+        if (!handled) {
+            passLongPressToChildren(x, y)
+        }
+    }
+
+    private fun passLongPressToChildren(x: Float, y: Float) {
+        // Find the child view at the touch coordinates and trigger long click
+        for (i in childCount - 1 downTo 0) {
+            val child = getChildAt(i)
+            if (isPointInsideView(x, y, child)) {
+                child.performLongClick()
+                break
+            }
+        }
+    }
+
+    private fun isPointInsideView(x: Float, y: Float, view: android.view.View): Boolean {
+        val location = IntArray(2)
+        view.getLocationInWindow(location)
+        val parentLocation = IntArray(2)
+        getLocationInWindow(parentLocation)
+
+        val relativeLeft = location[0] - parentLocation[0]
+        val relativeTop = location[1] - parentLocation[1]
+        val relativeRight = relativeLeft + view.width
+        val relativeBottom = relativeTop + view.height
+
+        return x >= relativeLeft && x <= relativeRight && y >= relativeTop && y <= relativeBottom
     }
 
     init {
@@ -174,7 +235,45 @@ class TerminalView @JvmOverloads constructor(
 
     override fun onTouchEvent(event: MotionEvent?): Boolean {
         // This is called when no child handles the event
-        // We already handle keyboard showing in onInterceptTouchEvent
+        when (event?.action) {
+            MotionEvent.ACTION_DOWN -> {
+                // Reset state for direct touch handling
+                longPressDetected = false
+                touchDownX = event.x
+                touchDownY = event.y
+                longPressHandler.removeCallbacks(longPressRunnable)
+                longPressHandler.postDelayed(
+                    longPressRunnable,
+                    ViewConfiguration.getLongPressTimeout().toLong()
+                )
+            }
+            MotionEvent.ACTION_MOVE -> {
+                val dx = abs(event.x - touchDownX)
+                val dy = abs(event.y - touchDownY)
+                if (dx > touchSlop || dy > touchSlop) {
+                    if (!longPressDetected) {
+                        longPressHandler.removeCallbacks(longPressRunnable)
+                    }
+                }
+            }
+            MotionEvent.ACTION_UP -> {
+                longPressHandler.removeCallbacks(longPressRunnable)
+                val dx = abs(event.x - touchDownX)
+                val dy = abs(event.y - touchDownY)
+                // If it was a quick tap (not long press and not moved much), show keyboard
+                if (!longPressDetected && dx <= touchSlop && dy <= touchSlop) {
+                    requestFocus()
+                    val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+                    imm.showSoftInput(this, InputMethodManager.SHOW_IMPLICIT)
+                    performClick()
+                }
+                longPressDetected = false
+            }
+            MotionEvent.ACTION_CANCEL -> {
+                longPressHandler.removeCallbacks(longPressRunnable)
+                longPressDetected = false
+            }
+        }
         return true
     }
 

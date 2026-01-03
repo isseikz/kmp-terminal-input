@@ -10,7 +10,7 @@ plugins {
 }
 
 group = "io.github.isseikz"
-version = "1.0.1"
+version = "1.0.2-SNAPSHOT"
 
 kotlin {
     androidLibrary {
@@ -55,9 +55,9 @@ kotlin {
 }
 
 mavenPublishing {
-    publishToMavenCentral()
+    // publishToMavenCentral() // Disabled for local testing
 
-    signAllPublications()
+    // signAllPublications() // Disabled for local testing
 
     coordinates(group.toString(), "kmp-terminal-input", version.toString())
 
