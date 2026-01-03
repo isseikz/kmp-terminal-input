@@ -1,10 +1,13 @@
 package io.github.isseikz.kmpinput
 
 import android.content.Context
+import android.os.Handler
+import android.os.Looper
 import android.text.InputType
 import android.util.AttributeSet
 import android.view.KeyEvent
 import android.view.MotionEvent
+import android.view.ViewConfiguration
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputConnection
 import android.view.inputmethod.InputMethodManager
@@ -16,6 +19,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import kotlin.math.abs
 
 /**
  * A container view that handles terminal keyboard input.
@@ -48,6 +52,16 @@ class TerminalView @JvmOverloads constructor(
     val handler: TerminalInputHandler get() = inputCore
     private var scope: CoroutineScope? = null
 
+    // Long press detection for passing events to child views
+    private val longPressHandler = Handler(Looper.getMainLooper())
+    private var longPressDetected = false
+    private var touchDownX = 0f
+    private var touchDownY = 0f
+    private val touchSlop = ViewConfiguration.get(context).scaledTouchSlop
+    private val longPressRunnable = Runnable {
+        longPressDetected = true
+    }
+
     init {
         isFocusable = true
         isFocusableInTouchMode = true
@@ -69,6 +83,7 @@ class TerminalView @JvmOverloads constructor(
 
     override fun onDetachedFromWindow() {
         super.onDetachedFromWindow()
+        longPressHandler.removeCallbacks(longPressRunnable)
         scope?.cancel()
         scope = null
     }
@@ -102,17 +117,64 @@ class TerminalView @JvmOverloads constructor(
     }
 
     override fun onInterceptTouchEvent(ev: MotionEvent?): Boolean {
-        // Intercept touch events to handle focus and keyboard
-        return true
+        if (ev == null) return false
+
+        when (ev.action) {
+            MotionEvent.ACTION_DOWN -> {
+                // Start long press detection
+                longPressDetected = false
+                touchDownX = ev.x
+                touchDownY = ev.y
+                longPressHandler.postDelayed(
+                    longPressRunnable,
+                    ViewConfiguration.getLongPressTimeout().toLong()
+                )
+                // Always pass ACTION_DOWN to children so they can track the gesture
+                return false
+            }
+            MotionEvent.ACTION_MOVE -> {
+                // Cancel long press if moved beyond touch slop before timeout
+                val dx = abs(ev.x - touchDownX)
+                val dy = abs(ev.y - touchDownY)
+                if (dx > touchSlop || dy > touchSlop) {
+                    if (!longPressDetected) {
+                        longPressHandler.removeCallbacks(longPressRunnable)
+                    }
+                }
+                // If long press detected, let children handle drag
+                if (longPressDetected) {
+                    return false
+                }
+                // Before long press timeout, don't intercept
+                return false
+            }
+            MotionEvent.ACTION_UP -> {
+                longPressHandler.removeCallbacks(longPressRunnable)
+                val dx = abs(ev.x - touchDownX)
+                val dy = abs(ev.y - touchDownY)
+                // If it was a quick tap (not long press and not moved much), show keyboard
+                if (!longPressDetected && dx <= touchSlop && dy <= touchSlop) {
+                    requestFocus()
+                    val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+                    imm.showSoftInput(this, InputMethodManager.SHOW_IMPLICIT)
+                    performClick()
+                }
+                longPressDetected = false
+                return false
+            }
+            MotionEvent.ACTION_CANCEL -> {
+                longPressHandler.removeCallbacks(longPressRunnable)
+                longPressDetected = false
+                return false
+            }
+        }
+
+        return false
     }
 
     override fun onTouchEvent(event: MotionEvent?): Boolean {
-        if (event?.action == MotionEvent.ACTION_UP) {
-            requestFocus()
-            val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
-            imm.showSoftInput(this, InputMethodManager.SHOW_IMPLICIT)
-            performClick()
-        }
+        // This is called when no child handles the event
+        // We already handle keyboard showing in onInterceptTouchEvent
         return true
     }
 
