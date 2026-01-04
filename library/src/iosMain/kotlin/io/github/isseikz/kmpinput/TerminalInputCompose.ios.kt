@@ -33,9 +33,7 @@ actual fun TerminalInputContainer(
         terminalView.setInputMode(inputMode)
         terminalView.handler.attach(scope)
         state.handler = terminalView.handler
-        state.showKeyboardCallback = { terminalView.becomeFirstResponder() }
         onDispose {
-            state.showKeyboardCallback = null
             state.detach()
         }
     }

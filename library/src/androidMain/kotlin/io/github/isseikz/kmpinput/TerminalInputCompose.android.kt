@@ -51,9 +51,6 @@ actual fun TerminalInputContainer(
                 localHandler = handler
                 state.handler = handler
 
-                // Set keyboard show callback
-                state.showKeyboardCallback = { showKeyboard() }
-
                 // Set long press listener if provided
                 if (onLongPress != null) {
                     onLongPressListener = OnLongPressListener { x, y ->

@@ -35,16 +35,8 @@ class TerminalInputContainerState {
             _handlerVersion++
         }
 
-    /** Platform-specific callback to show the keyboard. Set by TerminalInputContainer. */
-    internal var showKeyboardCallback: (() -> Unit)? = null
-
     /** Whether the handler is ready and attached. */
     val isReady: Boolean get() = _handler != null
-
-    /** Show the software keyboard for this terminal. */
-    fun showKeyboard() {
-        showKeyboardCallback?.invoke()
-    }
 
     /** Current UI state (input mode, composing state). Returns null if not ready. */
     val uiState: StateFlow<InputUiState>? get() = handler?.uiState
