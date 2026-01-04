@@ -195,6 +195,10 @@ class ViewController: UIViewController {
 
 このリポジトリの `composeApp` モジュールで、Compose Multiplatform を使用した完全な動作例を確認できます。
 
+## 今後の予定
+
+- **iOS 長押しサポート**: `TerminalInputContainer` の `onLongPress` コールバックは現在 Android のみ実装されています。iOS サポートは今後のリリースで対応予定です。
+
 ## ライセンス
 
 Apache License 2.0

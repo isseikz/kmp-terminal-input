@@ -108,6 +108,15 @@ fun rememberTerminalInputContainerState(): TerminalInputContainerState {
 }
 
 /**
+ * Callback for long press events in TerminalInputContainer.
+ *
+ * @param x The x coordinate of the long press
+ * @param y The y coordinate of the long press
+ * @return true if the event was handled, false to pass to child views
+ */
+typealias OnLongPress = (x: Float, y: Float) -> Boolean
+
+/**
  * A container composable that wraps content and handles keyboard input.
  *
  * When tapped anywhere within the content area, the software keyboard appears.
@@ -117,6 +126,7 @@ fun rememberTerminalInputContainerState(): TerminalInputContainerState {
  * @param state The state holder for this container
  * @param modifier Modifier for the container
  * @param inputMode Initial input mode (RAW or TEXT)
+ * @param onLongPress Callback for long press events. Return true if handled, false to pass to children.
  * @param content The composable content to wrap
  */
 @Composable
@@ -124,5 +134,6 @@ expect fun TerminalInputContainer(
     state: TerminalInputContainerState,
     modifier: ComposeModifier = ComposeModifier,
     inputMode: InputMode = InputMode.RAW,
+    onLongPress: OnLongPress? = null,
     content: @Composable () -> Unit
 )

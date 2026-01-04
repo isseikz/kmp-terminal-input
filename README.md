@@ -195,6 +195,10 @@ class ViewController: UIViewController {
 
 Check the `composeApp` module in this repository for a complete working example using Compose Multiplatform.
 
+## Future Plan
+
+- **iOS Long Press Support**: The `onLongPress` callback in `TerminalInputContainer` is currently only implemented for Android. iOS support is planned for a future release.
+
 ## License
 
 Apache License 2.0

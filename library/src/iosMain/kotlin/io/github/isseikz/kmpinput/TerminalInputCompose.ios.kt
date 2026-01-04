@@ -21,8 +21,10 @@ actual fun TerminalInputContainer(
     state: TerminalInputContainerState,
     modifier: ComposeModifier,
     inputMode: InputMode,
+    onLongPress: OnLongPress?,
     content: @Composable () -> Unit,
 ) {
+    // TODO: Implement long press for iOS
     val scope = rememberCoroutineScope()
     val terminalView = remember { TerminalInputView(CGRectZero.readValue()) }
     val interactionSource = remember { MutableInteractionSource() }
