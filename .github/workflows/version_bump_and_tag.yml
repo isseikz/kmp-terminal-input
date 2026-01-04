@@ -19,6 +19,7 @@ jobs:
 
     permissions:
       contents: write
+      pull-requests: write
 
     steps:
     - name: Checkout code
@@ -100,30 +101,45 @@ jobs:
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
 
-    - name: Commit and push changes
+    - name: Create branch and commit
+      id: create_branch
       run: |
+        BRANCH_NAME="release/v${{ steps.calc_version.outputs.new_version }}"
+        git checkout -b "$BRANCH_NAME"
         git add library/build.gradle.kts
         git commit -m "chore: bump version to ${{ steps.calc_version.outputs.new_version }}"
-        git push origin main
+        git push origin "$BRANCH_NAME"
+        echo "branch_name=$BRANCH_NAME" >> $GITHUB_OUTPUT
 
-    - name: Create and push tag
-      run: |
-        TAG_NAME="v${{ steps.calc_version.outputs.new_version }}"
-        git tag -a "$TAG_NAME" -m "Release version ${{ steps.calc_version.outputs.new_version }}"
-        git push origin "$TAG_NAME"
-        echo "Created and pushed tag: $TAG_NAME"
-
-    - name: Create GitHub Release
-      uses: softprops/action-gh-release@v1
+    - name: Create Pull Request
+      id: create_pr
+      uses: peter-evans/create-pull-request@v5
       with:
-        tag_name: v${{ steps.calc_version.outputs.new_version }}
-        name: Release v${{ steps.calc_version.outputs.new_version }}
+        token: ${{ secrets.GITHUB_TOKEN }}
+        branch: ${{ steps.create_branch.outputs.branch_name }}
+        base: main
+        title: "chore: bump version to ${{ steps.calc_version.outputs.new_version }}"
         body: |
-          ## What's Changed
-          - Version bump to ${{ steps.calc_version.outputs.new_version }}
+          ## Version Bump
 
-          **Full Changelog**: https://github.com/${{ github.repository }}/compare/v${{ steps.get_version.outputs.current_version }}...v${{ steps.calc_version.outputs.new_version }}
-        draft: false
-        prerelease: false
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          - **Current version**: ${{ steps.get_version.outputs.current_version }}
+          - **New version**: ${{ steps.calc_version.outputs.new_version }}
+          - **Bump type**: ${{ github.event.inputs.version_type }}
+
+          ## After Merge
+
+          After this PR is merged, create a tag and release:
+
+          ```bash
+          git tag -a "v${{ steps.calc_version.outputs.new_version }}" -m "Release version ${{ steps.calc_version.outputs.new_version }}"
+          git push origin "v${{ steps.calc_version.outputs.new_version }}"
+          ```
+
+          Or use the GitHub UI to create a release with tag `v${{ steps.calc_version.outputs.new_version }}`.
+        labels: |
+          release
+          automated
+
+    - name: Output PR URL
+      run: |
+        echo "Pull Request created: ${{ steps.create_pr.outputs.pull-request-url }}"
