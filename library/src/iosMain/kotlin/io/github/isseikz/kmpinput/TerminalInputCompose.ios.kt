@@ -24,7 +24,6 @@ actual fun TerminalInputContainer(
     onLongPress: OnLongPress?,
     content: @Composable () -> Unit,
 ) {
-    // TODO: Implement long press for iOS
     val scope = rememberCoroutineScope()
     val terminalView = remember { TerminalInputView(CGRectZero.readValue()) }
     val interactionSource = remember { MutableInteractionSource() }
@@ -33,9 +32,28 @@ actual fun TerminalInputContainer(
         terminalView.setInputMode(inputMode)
         terminalView.handler.attach(scope)
         state.handler = terminalView.handler
+
+        // Set long press listener if provided
+        if (onLongPress != null) {
+            terminalView.onLongPressListener = OnLongPressListener { x, y ->
+                onLongPress(x, y)
+            }
+        }
+
         onDispose {
+            terminalView.onLongPressListener = null
             state.detach()
         }
+    }
+
+    // Update long press listener when it changes
+    DisposableEffect(onLongPress) {
+        terminalView.onLongPressListener = if (onLongPress != null) {
+            OnLongPressListener { x, y -> onLongPress(x, y) }
+        } else {
+            null
+        }
+        onDispose { }
     }
 
     Box(

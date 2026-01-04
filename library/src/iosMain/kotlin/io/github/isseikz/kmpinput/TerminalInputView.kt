@@ -1,12 +1,15 @@
 package io.github.isseikz.kmpinput
 
+import kotlinx.cinterop.BetaInteropApi
 import kotlinx.cinterop.CValue
 import kotlinx.cinterop.ExperimentalForeignApi
+import kotlinx.cinterop.ObjCAction
 import kotlinx.cinterop.readValue
 import kotlinx.cinterop.useContents
 import platform.CoreGraphics.CGRect
 import platform.CoreGraphics.CGRectZero
 import platform.CoreGraphics.CGPoint
+import platform.CoreGraphics.CGPointMake
 import platform.Foundation.NSComparisonResult
 import platform.Foundation.NSOrderedSame
 import platform.Foundation.NSOrderedAscending
@@ -16,6 +19,20 @@ import platform.Foundation.NSRange
 import platform.Foundation.NSMakeRange
 import platform.UIKit.*
 import platform.darwin.NSObject
+
+/**
+ * Listener for long press events on TerminalInputView.
+ */
+fun interface OnLongPressListener {
+    /**
+     * Called when a long press is detected.
+     *
+     * @param x The x coordinate of the long press relative to the view
+     * @param y The y coordinate of the long press relative to the view
+     * @return true if the event was handled, false to pass to child views
+     */
+    fun onLongPress(x: Float, y: Float): Boolean
+}
 
 // Custom UITextPosition implementation
 private class SimpleTextPosition(val offset: Int) : UITextPosition()
@@ -36,10 +53,69 @@ private class SimpleTextRange(
     }
 }
 
-@OptIn(ExperimentalForeignApi::class)
-class TerminalInputView(frame: CValue<CGRect>) : UIView(frame), UITextInputProtocol {
+@OptIn(ExperimentalForeignApi::class, BetaInteropApi::class)
+class TerminalInputView(frame: CValue<CGRect>) : UIView(frame), UITextInputProtocol, UIGestureRecognizerDelegateProtocol {
     private val inputCore = TerminalInputCore()
     val handler: TerminalInputHandler get() = inputCore
+
+    /**
+     * Listener for long press events. If set and returns true, the event is consumed.
+     * Otherwise, the event is passed to child views.
+     */
+    var onLongPressListener: OnLongPressListener? = null
+
+    // Long press gesture recognizer
+    private val longPressGestureRecognizer: UILongPressGestureRecognizer
+
+    // Track if long press was detected to prevent tap from showing keyboard
+    private var longPressDetected = false
+
+    init {
+        // Setup long press gesture recognizer
+        longPressGestureRecognizer = UILongPressGestureRecognizer(
+            target = this,
+            action = NSSelectorFromString("handleLongPress:")
+        )
+        longPressGestureRecognizer.delegate = this
+        addGestureRecognizer(longPressGestureRecognizer)
+    }
+
+    @Suppress("UNUSED_PARAMETER")
+    @ObjCAction
+    fun handleLongPress(gestureRecognizer: UILongPressGestureRecognizer) {
+        if (gestureRecognizer.state == UIGestureRecognizerStateBegan) {
+            longPressDetected = true
+            val location = gestureRecognizer.locationInView(this)
+            location.useContents {
+                val handled = onLongPressListener?.onLongPress(x.toFloat(), y.toFloat()) ?: false
+                // If not handled, pass to subviews by allowing default behavior
+                if (!handled) {
+                    // Find and trigger long press on subviews
+                    passLongPressToSubviews(x.toFloat(), y.toFloat())
+                }
+            }
+        } else if (gestureRecognizer.state == UIGestureRecognizerStateEnded ||
+                   gestureRecognizer.state == UIGestureRecognizerStateCancelled) {
+            longPressDetected = false
+        }
+    }
+
+    private fun passLongPressToSubviews(x: Float, y: Float) {
+        // Iterate through subviews and check if point is inside
+        subviews.forEach { subview ->
+            val view = subview as? UIView ?: return@forEach
+            val point = CGPointMake(x.toDouble(), y.toDouble())
+            if (view.pointInside(point, withEvent = null)) {
+                // Trigger accessibility action for selection if available
+                view.accessibilityActivate()
+            }
+        }
+    }
+
+    // UIGestureRecognizerDelegateProtocol
+    override fun gestureRecognizerShouldBegin(gestureRecognizer: UIGestureRecognizer): Boolean {
+        return true
+    }
 
     private var _inputDelegate: UITextInputDelegateProtocol? = null
     override fun inputDelegate(): UITextInputDelegateProtocol? = _inputDelegate
@@ -87,8 +163,21 @@ class TerminalInputView(frame: CValue<CGRect>) : UIView(frame), UITextInputProto
     override fun canBecomeFirstResponder(): Boolean = true
 
     override fun touchesBegan(touches: Set<*>, withEvent: UIEvent?) {
-        becomeFirstResponder()
+        // Don't show keyboard immediately - wait for touchesEnded to distinguish from long press
         super.touchesBegan(touches, withEvent)
+    }
+
+    override fun touchesEnded(touches: Set<*>, withEvent: UIEvent?) {
+        // Only show keyboard if it wasn't a long press
+        if (!longPressDetected) {
+            becomeFirstResponder()
+        }
+        super.touchesEnded(touches, withEvent)
+    }
+
+    override fun touchesCancelled(touches: Set<*>, withEvent: UIEvent?) {
+        longPressDetected = false
+        super.touchesCancelled(touches, withEvent)
     }
 
     override fun hasText(): Boolean = currentMarkedText.isNotEmpty()
