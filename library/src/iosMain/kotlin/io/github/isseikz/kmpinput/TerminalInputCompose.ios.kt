@@ -53,8 +53,7 @@ actual fun TerminalInputContainer(
     }
 
     Box(modifier = modifier) {
-        content()
-        // Transparent UIKitView that fills the container to handle touch and keyboard input
+        // Transparent UIKitView at the bottom to handle touch and keyboard input
         @Suppress("DEPRECATION")
         UIKitView(
             factory = {
@@ -66,5 +65,7 @@ actual fun TerminalInputContainer(
             modifier = ComposeModifier.fillMaxSize(),
             interactive = true
         )
+        // Content on top (visible)
+        content()
     }
 }
