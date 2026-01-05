@@ -107,14 +107,55 @@ class TerminalInputView(frame: CValue<CGRect>) : UIView(frame), UITextInputProto
     }
 
     private fun passLongPressToSubviews(x: Float, y: Float) {
-        // Iterate through subviews and check if point is inside
-        subviews.forEach { subview ->
-            val view = subview as? UIView ?: return@forEach
-            val point = CGPointMake(x.toDouble(), y.toDouble())
-            if (view.pointInside(point, withEvent = null)) {
-                // Trigger accessibility action for selection if available
-                view.accessibilityActivate()
+        val point = CGPointMake(x.toDouble(), y.toDouble())
+
+        // Find the deepest subview at the touch point
+        val targetView = findDeepestSubview(this, point)
+
+        if (targetView != null && targetView != this) {
+            // Try to trigger long press gesture recognizer on the target view
+            triggerLongPressOnView(targetView, point)
+        }
+    }
+
+    private fun findDeepestSubview(view: UIView, point: CValue<CGPoint>): UIView? {
+        // Convert point to view's coordinate system
+        val localPoint = view.convertPoint(point, fromView = this)
+
+        if (!view.pointInside(localPoint, withEvent = null)) {
+            return null
+        }
+
+        // Check subviews in reverse order (front to back)
+        view.subviews.reversed().forEach { subview ->
+            val child = subview as? UIView ?: return@forEach
+            if (child.isUserInteractionEnabled()) {
+                val result = findDeepestSubview(child, point)
+                if (result != null) {
+                    return result
+                }
             }
+        }
+
+        return view
+    }
+
+    private fun triggerLongPressOnView(view: UIView, point: CValue<CGPoint>) {
+        // Look for UILongPressGestureRecognizer on the view
+        view.gestureRecognizers?.forEach { recognizer ->
+            val gestureRecognizer = recognizer as? UILongPressGestureRecognizer
+            if (gestureRecognizer != null && gestureRecognizer.isEnabled()) {
+                // We can't directly trigger the gesture recognizer,
+                // but we can perform the long press action if available
+                view.performSelector(NSSelectorFromString("longPress:"), withObject = gestureRecognizer)
+                return
+            }
+        }
+
+        // Fallback: try to perform long press action via responder chain
+        // For UIKit views that support long press (like UITextView)
+        if (view.canPerformAction(NSSelectorFromString("select:"), withSender = null)) {
+            view.performSelector(NSSelectorFromString("select:"), withObject = null)
         }
     }
 
