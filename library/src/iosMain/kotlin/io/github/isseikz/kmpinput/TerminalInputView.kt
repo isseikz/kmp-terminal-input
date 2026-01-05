@@ -162,6 +162,20 @@ class TerminalInputView(frame: CValue<CGRect>) : UIView(frame), UITextInputProto
 
     override fun canBecomeFirstResponder(): Boolean = true
 
+    /**
+     * Programmatically show the software keyboard.
+     */
+    fun showKeyboard() {
+        becomeFirstResponder()
+    }
+
+    /**
+     * Programmatically hide the software keyboard.
+     */
+    fun hideKeyboard() {
+        resignFirstResponder()
+    }
+
     override fun touchesBegan(touches: Set<*>, withEvent: UIEvent?) {
         // Don't show keyboard immediately - wait for touchesEnded to distinguish from long press
         super.touchesBegan(touches, withEvent)
