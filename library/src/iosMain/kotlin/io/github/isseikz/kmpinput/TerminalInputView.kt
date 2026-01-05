@@ -64,8 +64,9 @@ class TerminalInputView(frame: CValue<CGRect>) : UIView(frame), UITextInputProto
      */
     var onLongPressListener: OnLongPressListener? = null
 
-    // Long press gesture recognizer
+    // Gesture recognizers
     private val longPressGestureRecognizer: UILongPressGestureRecognizer
+    private val tapGestureRecognizer: UITapGestureRecognizer
 
     // Track if long press was detected to prevent tap from showing keyboard
     private var longPressDetected = false
@@ -75,6 +76,14 @@ class TerminalInputView(frame: CValue<CGRect>) : UIView(frame), UITextInputProto
     private val touchSlop = 10.0
 
     init {
+        // Setup tap gesture recognizer
+        tapGestureRecognizer = UITapGestureRecognizer(
+            target = this,
+            action = NSSelectorFromString("handleTap:")
+        )
+        tapGestureRecognizer.delegate = this
+        addGestureRecognizer(tapGestureRecognizer)
+
         // Setup long press gesture recognizer
         longPressGestureRecognizer = UILongPressGestureRecognizer(
             target = this,
@@ -84,6 +93,19 @@ class TerminalInputView(frame: CValue<CGRect>) : UIView(frame), UITextInputProto
         // Set allowable movement to match touch slop behavior
         longPressGestureRecognizer.allowableMovement = touchSlop
         addGestureRecognizer(longPressGestureRecognizer)
+
+        // Tap should wait for long press to fail
+        tapGestureRecognizer.requireGestureRecognizerToFail(longPressGestureRecognizer)
+    }
+
+    @ObjCAction
+    fun handleTap(gestureRecognizer: UITapGestureRecognizer) {
+        platform.Foundation.NSLog("TerminalInputView: handleTap called, state=${gestureRecognizer.state}")
+        if (gestureRecognizer.state == UIGestureRecognizerStateEnded) {
+            platform.Foundation.NSLog("TerminalInputView: calling becomeFirstResponder")
+            val result = becomeFirstResponder()
+            platform.Foundation.NSLog("TerminalInputView: becomeFirstResponder returned $result")
+        }
     }
 
     @Suppress("UNUSED_PARAMETER")
