@@ -102,9 +102,15 @@ class TerminalInputView(frame: CValue<CGRect>) : UIView(frame), UITextInputProto
     fun handleTap(gestureRecognizer: UITapGestureRecognizer) {
         platform.Foundation.NSLog("TerminalInputView: handleTap called, state=${gestureRecognizer.state}")
         if (gestureRecognizer.state == UIGestureRecognizerStateEnded) {
+            platform.Foundation.NSLog("TerminalInputView: window=${window}, isFirstResponder=${isFirstResponder()}")
+            platform.Foundation.NSLog("TerminalInputView: canBecomeFirstResponder=${canBecomeFirstResponder()}")
             platform.Foundation.NSLog("TerminalInputView: calling becomeFirstResponder")
             val result = becomeFirstResponder()
-            platform.Foundation.NSLog("TerminalInputView: becomeFirstResponder returned $result")
+            platform.Foundation.NSLog("TerminalInputView: becomeFirstResponder returned $result, isFirstResponder=${isFirstResponder()}")
+            if (result) {
+                reloadInputViews()
+                platform.Foundation.NSLog("TerminalInputView: reloadInputViews called")
+            }
         }
     }
 
