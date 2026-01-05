@@ -70,6 +70,10 @@ class TerminalInputView(frame: CValue<CGRect>) : UIView(frame), UITextInputProto
     // Track if long press was detected to prevent tap from showing keyboard
     private var longPressDetected = false
 
+    // Touch slop value (in points) - movement beyond this cancels long press
+    // Android's default is around 8dp, iOS default allowableMovement is 10 points
+    private val touchSlop = 10.0
+
     init {
         // Setup long press gesture recognizer
         longPressGestureRecognizer = UILongPressGestureRecognizer(
@@ -77,6 +81,8 @@ class TerminalInputView(frame: CValue<CGRect>) : UIView(frame), UITextInputProto
             action = NSSelectorFromString("handleLongPress:")
         )
         longPressGestureRecognizer.delegate = this
+        // Set allowable movement to match touch slop behavior
+        longPressGestureRecognizer.allowableMovement = touchSlop
         addGestureRecognizer(longPressGestureRecognizer)
     }
 
