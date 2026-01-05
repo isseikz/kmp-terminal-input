@@ -100,16 +100,13 @@ class TerminalInputView(frame: CValue<CGRect>) : UIView(frame), UITextInputProto
 
     @ObjCAction
     fun handleTap(gestureRecognizer: UITapGestureRecognizer) {
-        platform.Foundation.NSLog("TerminalInputView: handleTap called, state=${gestureRecognizer.state}")
+        platform.Foundation.NSLog("TerminalInputView[$this]: handleTap called, state=${gestureRecognizer.state}")
         if (gestureRecognizer.state == UIGestureRecognizerStateEnded) {
-            platform.Foundation.NSLog("TerminalInputView: window=${window}, isFirstResponder=${isFirstResponder()}")
-            platform.Foundation.NSLog("TerminalInputView: canBecomeFirstResponder=${canBecomeFirstResponder()}")
-            platform.Foundation.NSLog("TerminalInputView: calling becomeFirstResponder")
+            platform.Foundation.NSLog("TerminalInputView[$this]: calling becomeFirstResponder")
             val result = becomeFirstResponder()
-            platform.Foundation.NSLog("TerminalInputView: becomeFirstResponder returned $result, isFirstResponder=${isFirstResponder()}")
+            platform.Foundation.NSLog("TerminalInputView[$this]: becomeFirstResponder returned $result")
             if (result) {
                 reloadInputViews()
-                platform.Foundation.NSLog("TerminalInputView: reloadInputViews called")
             }
         }
     }
@@ -272,6 +269,7 @@ class TerminalInputView(frame: CValue<CGRect>) : UIView(frame), UITextInputProto
     override fun hasText(): Boolean = currentMarkedText.isNotEmpty()
 
     override fun insertText(text: String) {
+        platform.Foundation.NSLog("TerminalInputView[$this]: insertText('$text')")
         // Clear marked text state when inserting
         currentMarkedText = ""
         _markedTextRange = null
